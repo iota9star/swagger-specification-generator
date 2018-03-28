@@ -71,7 +71,7 @@ public @interface Api {
      *
      * @return 响应MIME，默认为application/json; charset=utf-8
      */
-    MIME[] produces() default {MIME.JSON};
+    MIME[] produces() default {MIME.APPLICATION$JSON};
 
     /**
      * A list of parameters that are applicable for this operation. If a parameter is already defined at the Path Item, the new definition will override it, but can never remove it. The list MUST NOT include duplicated parameters. A unique parameter is defined by a combination of a name and location. The list can use the Reference Object to link to parameters that are defined at the Swagger Object's parameters. There can be one "body" parameter at most.

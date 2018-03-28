@@ -11,8 +11,8 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
 import java.util.*;
 
 public class SwaggerProcessor extends AbstractProcessor {
@@ -171,22 +171,20 @@ public class SwaggerProcessor extends AbstractProcessor {
     private void createJsonAndYaml(Map<String, Object> spec, String filePath) {
         String jsonString = new Gson().toJson(spec);
         try {
-            FileWriter fw = new FileWriter(filePath + ".json", false);
-            BufferedWriter bw = new BufferedWriter(fw);
-            bw.write(jsonString);
-            bw.close();
-            fw.close();
+            OutputStreamWriter osw = new OutputStreamWriter(new FileOutputStream(filePath + ".json"), "UTF-8");
+            osw.write(jsonString);
+            osw.flush();
+            osw.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
         try {
             JsonNode jsonNodeTree = new ObjectMapper().readTree(jsonString);
             String yaml = new YAMLMapper().writeValueAsString(jsonNodeTree);
-            FileWriter fw = new FileWriter(filePath + ".yaml", false);
-            BufferedWriter bw = new BufferedWriter(fw);
-            bw.write(yaml);
-            bw.close();
-            fw.close();
+            OutputStreamWriter osw = new OutputStreamWriter(new FileOutputStream(filePath + ".yaml"), "UTF-8");
+            osw.write(yaml);
+            osw.flush();
+            osw.close();
         } catch (Exception e) {
             e.printStackTrace();
         }

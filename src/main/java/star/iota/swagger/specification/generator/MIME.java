@@ -1,11 +1,11 @@
 package star.iota.swagger.specification.generator;
 
 public enum MIME {
-    X_WWW_FORM_URLENCODED("application/x-www-form-urlencoded"),
-    FORM_DATA("multipart/form-data"),
-    HTML("text/html"),
-    JSON("application/json"),
-    XML("application/xml");
+    APPLICATION$X_WWW_FORM_URLENCODED("application/x-www-form-urlencoded"),
+    MULTIPART$FORM_DATA("multipart/form-data"),
+    TEXT$HTML("text/html"),
+    APPLICATION$JSON("application/json"),
+    APPLICATION$XML("application/xml");
     private String mime;
 
     public String mime() {
