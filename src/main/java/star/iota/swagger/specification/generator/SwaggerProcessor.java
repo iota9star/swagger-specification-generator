@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.gson.Gson;
+import star.iota.swagger.specification.generator.base.*;
+import star.iota.swagger.specification.generator.core.*;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.ProcessingEnvironment;
@@ -39,6 +41,7 @@ public class SwaggerProcessor extends AbstractProcessor {
      */
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        System.out.println(roundEnv.getRootElements());
         System.out.println("=================================================================");
         System.out.println("生成开始>>>");
         Properties properties = Properties.get().load();
@@ -47,10 +50,11 @@ public class SwaggerProcessor extends AbstractProcessor {
             System.out.println("未生成文件，路径为空");
             return false;
         }
-        String filePath = buildPath + "\\swagger";
-        if (!isBlank(properties.getApiVersion())) {
-            filePath += "_" + properties.getApiVersion();
-        }
+        String filePath = buildPath + "\\"
+                + properties.getFileName()
+                .replaceAll("\\$\\{projectName}", properties.getProjectName())
+                .replaceAll("\\$\\{apiVersion}", properties.getApiVersion())
+                .replaceAll("\\$\\{apiTitle}", properties.getApiTitle());
         System.out.println("生成文件路径：" + filePath + ".json|yaml");
         Map<String, Object> specification = new LinkedHashMap<String, Object>();
         bindProperties(properties, specification);
@@ -62,100 +66,19 @@ public class SwaggerProcessor extends AbstractProcessor {
                 if (api.hide()) continue;
                 Map<String, Object> method = new LinkedHashMap<String, Object>();
                 Map<String, Object> params = new LinkedHashMap<String, Object>();
-                String[] tags = api.tags();
-                if (tags.length > 0) {
-                    params.put("tags", tags);
-                }
-                TagDesc[] tagDescs = api.tagsDesc();
-                if (tagDescs.length > 0) {
-                    for (TagDesc tagDesc : tagDescs) {
-                        LinkedHashMap<String, Object> d = new LinkedHashMap<String, Object>();
-                        d.put("name", tagDesc.name());
-                        d.put("description", tagDesc.desc());
-                        tagsDesc.add(d);
-                    }
-                }
-                params.put("summary", api.summary());
-                StringBuilder desc = new StringBuilder(api.desc());
-                String[] additional = api.additional();
-                if (additional.length > 0) {
-                    desc.append("\n");
-                    for (String s : additional) {
-                        desc.append("\n").append(s);
-                    }
-                }
-                params.put("description", desc.toString());
-                String operationId = api.operationId();
-                if (operationId.length() > 0) {
-                    params.put("operationId", operationId);
-                }
-                MIME[] producesArr = api.produces();
-                if (producesArr.length > 0) {
-                    Set<String> produces = new LinkedHashSet<String>();
-                    for (MIME mime : producesArr) {
-                        produces.add(mime.mime());
-                    }
-                    params.put("produces", produces);
-                }
-                MIME[] consumesArr = api.consumes();
-                Set<String> consumes = new LinkedHashSet<String>();
-                if (consumesArr.length > 0) {
-                    for (MIME mime : consumesArr) {
-                        consumes.add(mime.mime());
-                    }
-                    params.put("consumes", consumes);
-                }
-                Param[] parametersArr = api.parameters();
-                if (parametersArr.length > 0) {
-                    Set<LinkedHashMap<String, Object>> pa = new LinkedHashSet<LinkedHashMap<String, Object>>();
-                    for (Param parameter : parametersArr) {
-                        LinkedHashMap<String, Object> p = new LinkedHashMap<String, Object>();
-                        p.put("name", parameter.name());
-                        p.put("in", parameter.in().param());
-                        p.put("description", parameter.desc());
-                        p.put("required", parameter.required());
-                        DataType dataType = parameter.dataType();
-                        if (dataType == DataType.ARRAY) {
-
-                        } else if (dataType == DataType.FILE) {
-                            p.put("type", dataType.type());
-                        } else {
-                            p.put("type", dataType.type());
-                            p.put("format", dataType.format());
-                        }
-                        pa.add(p);
-                    }
-                    params.put("parameters", pa);
-                }
-                Scheme[] schemesArr = api.schemes();
-                if (schemesArr.length > 0) {
-                    Set<String> schemes = new LinkedHashSet<String>();
-                    for (Scheme s : schemesArr) {
-                        schemes.add(s.scheme());
-                    }
-                    params.put("schemes", schemes);
-                }
-                Resp[] responsesArr = api.responses();
-                if (responsesArr.length > 0) {
-                    Map<String, Object> responses = new LinkedHashMap<String, Object>();
-                    for (Resp response : responsesArr) {
-                        Map<String, Object> p = new LinkedHashMap<String, Object>();
-                        p.put("description", response.desc());
-                        responses.put(response.code(), p);
-                    }
-                    params.put("responses", responses);
-                }
-                Sec[] securityArr = api.security();
-                if (securityArr.length > 0) {
-                    Set<LinkedHashMap<String, Object>> security = new LinkedHashSet<LinkedHashMap<String, Object>>();
-                    for (Sec sec : securityArr) {
-                        LinkedHashMap<String, Object> i = new LinkedHashMap<String, Object>();
-                        Set<String> s = new LinkedHashSet<String>(Arrays.asList(sec.values()));
-                        i.put(sec.key(), s);
-                        security.add(i);
-                    }
-                    params.put("security", security);
-                }
+                setTag(api, params);
+                setTags(tagsDesc, api);
+                setSummary(api, params);
+                setDescription(api, params);
+                setApiExternalDocs(api, params);
+                setOperationId(api, params);
+                setProduces(api, params);
+                setConsumers(api, params);
+                setParameters(api, params);
+                setSchemes(api, params);
+                setResponses(api, params);
+                setSecurity(api, params);
+                isDeprecated(api, params);
                 method.put(api.method().method(), params);
                 path.put(api.url(), method);
                 specification.put("tags", tagsDesc);
@@ -166,6 +89,227 @@ public class SwaggerProcessor extends AbstractProcessor {
         System.out.println("生成结束<<<");
         System.out.println("=================================================================");
         return false;
+    }
+
+    private void isDeprecated(Api api, Map<String, Object> params) {
+        boolean deprecated = api.deprecated();
+        if (deprecated) {
+            params.put("deprecated", true);
+        }
+    }
+
+    private void setApiExternalDocs(Api api, Map<String, Object> params) {
+        ExtDoc extDoc = api.extDocs();
+        if (!isBlank(extDoc.desc()) || !isBlank(extDoc.url())) {
+            Map<String, String> doc = new HashMap<String, String>();
+            doc.put("description", extDoc.desc());
+            doc.put("url", extDoc.url());
+            params.put("externalDocs", doc);
+        }
+    }
+
+    private void setTag(Api api, Map<String, Object> params) {
+        String[] tags = api.tags();
+        if (tags.length > 0) {
+            params.put("tags", tags);
+        }
+    }
+
+    private void setTags(Set<LinkedHashMap<String, Object>> tagsDesc, Api api) {
+        TagDesc[] tagDescs = api.tagsDesc();
+        if (tagDescs.length > 0) {
+            for (TagDesc tagDesc : tagDescs) {
+                LinkedHashMap<String, Object> d = new LinkedHashMap<String, Object>();
+                d.put("name", tagDesc.name());
+                d.put("description", tagDesc.desc());
+                tagsDesc.add(d);
+            }
+        }
+    }
+
+    private void setSummary(Api api, Map<String, Object> params) {
+        String summary = api.summary();
+        if (!isBlank(summary)) {
+            params.put("summary", summary);
+        }
+    }
+
+    private void setDescription(Api api, Map<String, Object> params) {
+        StringBuilder desc = new StringBuilder(api.desc());
+        String[] additional = api.additional();
+        if (additional.length > 0) {
+            desc.append("\n");
+            for (String s : additional) {
+                desc.append("\n").append(s);
+            }
+        }
+        params.put("description", desc.toString());
+    }
+
+    private void setOperationId(Api api, Map<String, Object> params) {
+        String operationId = api.operationId();
+        if (operationId.length() > 0) {
+            params.put("operationId", operationId);
+        }
+    }
+
+    private void setProduces(Api api, Map<String, Object> params) {
+        MIME[] producesArr = api.produces();
+        if (producesArr.length > 0) {
+            Set<String> produces = new LinkedHashSet<String>();
+            for (MIME mime : producesArr) {
+                produces.add(mime.mime());
+            }
+            params.put("produces", produces);
+        }
+    }
+
+    private void setConsumers(Api api, Map<String, Object> params) {
+        MIME[] consumesArr = api.consumes();
+        Set<String> consumes = new LinkedHashSet<String>();
+        if (consumesArr.length > 0) {
+            for (MIME mime : consumesArr) {
+                consumes.add(mime.mime());
+            }
+            params.put("consumes", consumes);
+        }
+    }
+
+    private void setParameters(Api api, Map<String, Object> params) {
+        Param[] parametersArr = api.parameters();
+        if (parametersArr.length > 0) {
+            Set<LinkedHashMap<String, Object>> pa = new LinkedHashSet<LinkedHashMap<String, Object>>();
+            for (Param parameter : parametersArr) {
+                LinkedHashMap<String, Object> p = new LinkedHashMap<String, Object>();
+                p.put("name", parameter.name());
+                p.put("in", parameter.in().param());
+                p.put("description", parameter.desc());
+                p.put("required", parameter.required());
+                CollectionFormat collectionFormat = parameter.collectionFormat();
+                if (collectionFormat != CollectionFormat.CSV) {
+                    p.put("collectionFormat", collectionFormat.format());
+                }
+                if (parameter.in() == In.BODY) {
+                    Schema schema = parameter.schema();
+                    Map<String, String> s = new HashMap<String, String>();
+                    s.put("$ref", "#/definitions/" + schema.$ref());
+                    p.put("schema", s);
+                } else {
+                    boolean empty = parameter.empty();
+                    if (empty) {
+                        p.put("allowEmptyValue", true);
+                    }
+                    DataType dataType = parameter.type();
+                    if (dataType == DataType.ARRAY) {
+                        Items items = parameter.items();
+                        Map<String, Object> its = new LinkedHashMap<String, Object>();
+                        DataType type = items.type();
+                        its.put("type", type.type());
+                        its.put("format", type.format());
+                        String[] $enum = items.$enum();
+                        if ($enum.length > 0) {
+                            switch (type) {
+                                case INTEGER:
+                                    List<Integer> integers = new ArrayList<Integer>();
+                                    for (String s : $enum) {
+                                        integers.add(Integer.parseInt(s));
+                                    }
+                                    its.put("enum", integers);
+                                    break;
+                                case LONG:
+                                    List<Long> longs = new ArrayList<Long>();
+                                    for (String s : $enum) {
+                                        longs.add(Long.parseLong(s));
+                                    }
+                                    its.put("enum", longs);
+                                    break;
+                                case FLOAT:
+                                    List<Float> floats = new ArrayList<Float>();
+                                    for (String s : $enum) {
+                                        floats.add(Float.parseFloat(s));
+                                    }
+                                    its.put("enum", floats);
+                                    break;
+                                case DOUBLE:
+                                    List<Double> doubles = new ArrayList<Double>();
+                                    for (String s : $enum) {
+                                        doubles.add(Double.parseDouble(s));
+                                    }
+                                    its.put("enum", doubles);
+                                    break;
+                                case BOOLEAN:
+                                    List<Boolean> booleans = new ArrayList<Boolean>();
+                                    for (String s : $enum) {
+                                        booleans.add(Boolean.parseBoolean(s));
+                                    }
+                                    its.put("enum", booleans);
+                                    break;
+                                default:
+                                    its.put("enum", $enum);
+                            }
+                        }
+                        String def = items.def();
+                        if (!isBlank(def)) {
+                            its.put("default", def);
+                        }
+                        CollectionFormat format = items.collectionFormat();
+                        if (format != CollectionFormat.CSV) {
+                            its.put("collectionFormat", format.format());
+                        }
+                        p.put("items", its);
+                    } else if (dataType == DataType.FILE) {
+                        p.put("type", dataType.type());
+                    } else {
+                        p.put("type", dataType.type());
+                        p.put("format", dataType.format());
+                        String defaultVal = parameter.def();
+                        if (!isBlank(defaultVal)) {
+                            p.put("default", defaultVal);
+                        }
+                    }
+                }
+                pa.add(p);
+            }
+            params.put("parameters", pa);
+        }
+    }
+
+    private void setSchemes(Api api, Map<String, Object> params) {
+        Scheme[] schemesArr = api.schemes();
+        if (schemesArr.length > 0) {
+            Set<String> schemes = new LinkedHashSet<String>();
+            for (Scheme s : schemesArr) {
+                schemes.add(s.scheme());
+            }
+            params.put("schemes", schemes);
+        }
+    }
+
+    private void setResponses(Api api, Map<String, Object> params) {
+        Resp[] responsesArr = api.responses();
+        if (responsesArr.length > 0) {
+            Map<String, Object> responses = new LinkedHashMap<String, Object>();
+            for (Resp response : responsesArr) {
+                Map<String, Object> p = new LinkedHashMap<String, Object>();
+                p.put("description", response.desc());
+                responses.put(response.code(), p);
+            }
+            params.put("responses", responses);
+        }
+    }
+
+    private void setSecurity(Api api, Map<String, Object> params) {
+        Sec[] securityArr = api.security();
+        if (securityArr.length > 0) {
+            Set<LinkedHashMap<String, Object>> security = new LinkedHashSet<LinkedHashMap<String, Object>>();
+            for (Sec sec : securityArr) {
+                LinkedHashMap<String, Object> i = new LinkedHashMap<String, Object>();
+                Set<String> s = new LinkedHashSet<String>(Arrays.asList(sec.values()));
+                i.put(sec.key(), s);
+                security.add(i);
+            }
+            params.put("security", security);
+        }
     }
 
     private void createJsonAndYaml(Map<String, Object> spec, String filePath) {

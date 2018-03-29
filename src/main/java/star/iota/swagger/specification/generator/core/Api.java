@@ -1,4 +1,8 @@
-package star.iota.swagger.specification.generator;
+package star.iota.swagger.specification.generator.core;
+
+import star.iota.swagger.specification.generator.base.MIME;
+import star.iota.swagger.specification.generator.base.Method;
+import star.iota.swagger.specification.generator.base.Scheme;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -50,7 +54,7 @@ public @interface Api {
      *
      * @return 额外的外部文档操作
      */
-    ExtDoc externalDocs() default @ExtDoc;
+    ExtDoc extDocs() default @ExtDoc;
 
     /**
      * Unique string used to identify the operation. The id MUST be unique among all operations described in the API. Tools and libraries MAY use the operationId to uniquely identify an operation, therefore, it is recommended to follow common programming naming conventions.
@@ -74,7 +78,7 @@ public @interface Api {
     MIME[] produces() default {MIME.APPLICATION$JSON};
 
     /**
-     * A list of parameters that are applicable for this operation. If a parameter is already defined at the Path Item, the new definition will override it, but can never remove it. The list MUST NOT include duplicated parameters. A unique parameter is defined by a combination of a name and location. The list can use the Reference Object to link to parameters that are defined at the Swagger Object's parameters. There can be one "body" parameter at most.
+     * A list of parameters that are applicable for this operation. If a parameter is already defined at the Path Items, the new definition will override it, but can never remove it. The list MUST NOT include duplicated parameters. A unique parameter is defined by a combination of a name and location. The list can use the Reference Object to link to parameters that are defined at the Swagger Object's parameters. There can be one "body" parameter at most.
      *
      * @return 请求的参数
      */
@@ -84,7 +88,7 @@ public @interface Api {
     /**
      * Required. The list of possible responses as they are returned from executing this operation.
      *
-     * @return 必要的，返回可能的响应
+     * @return 必要，返回可能的响应
      */
     Resp[] responses() default {};
 
@@ -119,4 +123,7 @@ public @interface Api {
      */
     String[] additional() default {};
 
+    Def4J[] definitions4j() default {};
+
+    Def[] definitions() default {};
 }

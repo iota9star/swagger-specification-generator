@@ -1,5 +1,5 @@
 
-package star.iota.swagger.specification.generator;
+package star.iota.swagger.specification.generator.base;
 
 
 public enum DataType {

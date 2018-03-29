@@ -8,6 +8,14 @@ public class Properties {
      */
     private static final String BUILD_PATH = "buildPath";
     /**
+     * 生成swagger specification 文件的名字
+     */
+    private static final String FILE_NAME = "fileName";
+    /**
+     * 项目的名称
+     */
+    private static final String PROJECT_NAME = "projectName";
+    /**
      * 扫描包的路径，若为空，则扫描全部包
      */
     private static final String SCAN_PATH = "scanPath";
@@ -90,6 +98,14 @@ public class Properties {
         return new Properties();
     }
 
+    public String getFileName() {
+        return properties.getProperty(FILE_NAME);
+    }
+
+    public String getProjectName() {
+        return properties.getProperty(PROJECT_NAME);
+    }
+
     public String getApiTitle() {
         return properties.getProperty(API_TITLE);
     }
@@ -137,4 +153,5 @@ public class Properties {
     public String getSchemes() {
         return properties.getProperty(SCHEMES);
     }
+
 }

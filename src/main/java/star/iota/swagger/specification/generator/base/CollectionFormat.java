@@ -1,10 +1,11 @@
-package star.iota.swagger.specification.generator;
+package star.iota.swagger.specification.generator.base;
 
 public enum CollectionFormat {
     CSV("csv"),
     SSV("ssv"),
     TSV("tsv"),
-    PIPES("pipes");
+    PIPES("pipes"),
+    MULTI("multi");
     private String format;
 
     public String format() {

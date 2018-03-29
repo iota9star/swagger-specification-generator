@@ -1,4 +1,4 @@
-package star.iota.swagger.specification.generator;
+package star.iota.swagger.specification.generator.base;
 
 public enum MIME {
     APPLICATION$X_WWW_FORM_URLENCODED("application/x-www-form-urlencoded"),

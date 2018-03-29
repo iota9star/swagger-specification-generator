@@ -1,10 +1,10 @@
-package star.iota.swagger.specification.generator;
+package star.iota.swagger.specification.generator.core;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.SOURCE)
-public @interface TagDesc {
+public @interface Tag {
     /**
      * @return tag的名字
      */
@@ -13,10 +13,10 @@ public @interface TagDesc {
     /**
      * @return tag的描述
      */
-    String desc();
+    String desc() default "";
 
     /**
-     * @return 额外的文档
+     * @return tag额外的文档
      */
-    ExtDoc extDocs() default @ExtDoc;
+    ExtDoc externalDocs() default @ExtDoc;
 }
